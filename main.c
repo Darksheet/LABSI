@@ -36,40 +36,33 @@ void adc_start(){
 }
 
 volatile uint8_t flag_adc=0;
+static uint8_t first_conversion = 1;
 
 ISR(ADC_vect)    // Função de Interrupção do ADC
 {
-	/*
-	pwm = (ADCH); //Guarda o valor obtido pela leitura
-	adc_start();  //Inicializa Leitura pelo ADC*/
-	static uint8_t first_conversion = 1;
 	
-	 LDR1an = ADCL + (ADCH<<8);
-	 flag_adc = 1;
 	
-	/*
-	if(ADMUX == 1) // channel 1
+	
+	 //LDR1an = ADCL + (ADCH<<8);
+	// flag_adc = 1;
+	
+	
+	if(MUX1 == 0) // ADC1
 	{
 		if(first_conversion == 2)
 		{
-			//pb1 = ADCH;
-			//pb2 = ADCL;
-			// LDR1an = ADCL>>6 | ADCH<<2;
-			 LDR1an = ADCL + ADCH<<8;
-			 
+			LDR1an = ADCL + ADCH<<8; 
 			ADMUX = (1<<MUX1) | (0<<MUX0); // switch ADC to channel 2
 			first_conversion = 1;
 			flag_adc = 1;
 		}
 		else first_conversion++;
 	}
-	else if(ADMUX == 2) // channel 2
+	else if(MUX1 == 1 ) //  ADC2
 	{
 		if(first_conversion == 2)
 		{
-			//if(pot_flag == 1) 
-			//pb1 = ADCH;
-			//pb2 = ADCL;
+			
 			LDR2an = ADCL + ADCH<<8;// ADCL>>6 | ADCH<<2;
 
 			ADMUX = (0<<MUX1) | (1<<MUX0); // switch back to channel 0
@@ -79,25 +72,12 @@ ISR(ADC_vect)    // Função de Interrupção do ADC
 		}
 		else first_conversion++;
 	}
-	 //LDR1 =  (LDR1an / 1024) * 5;
-	 //LDR2 =  (LDR2an / 1024) * 5;
-	 //LDR1 = LDR1an;
-	 LDR1an = 256;*/
+	// LDR1an = 256;
 }
 
 // Função receber dados
 
-/*void rec_dad(){
-	
-	unsigned char i = 0;
-	
-	while(dado[i] != '\0'){
-		while(UCSR0A & (1<<UDRE0)==0);
-		UDR0 = dado[i];
-		i++;
-	}
-	//sprintf("%d", LDR1an);
-}*/
+
 
 ISR(USART_RX_vect)
 {
@@ -160,14 +140,11 @@ void init(){
 	OCR2A = 0; //Começa a 0
 	*/
 	
-	//Configuração do ADC1
-	ADMUX = (0<<REFS0) | (1<<REFS1) | (0<<ADLAR) | (1<<MUX0); //define o AVcc como referencia e define adc1 como pino de entrada do adc, com ADLAR ajustado a esquerda
+	//Configuração do ADC2 sendo que o ADC1 é depois ativado com a troca de ADC's
+	ADMUX = (0<<REFS0) | (1<<REFS1) | (0<<ADLAR) | (1<<MUX1); //define o AVcc como referencia e define adc2 como pino de entrada do adc, com ADLAR ajustado a esquerda
 	ADCSRA = (1<<ADEN) | (1<<ADIE) | (0<<ADIF) | (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0);//define o começo do adc em modo continuo ativa as flags e define o prescaler para o adc para 128
 	//adc_start();
-	//Configuração do ADC2
-	//ADMUX = (0<<REFS0) | (0<<REFS1) | (0<<ADLAR) | (1<<MUX1); //define o AVcc como referencia e define adc2 como pino de entrada do adc, com ADLAR ajustado a esquerda
-	//ADCSRA = (1<<ADEN) | (1<<ADIE) | (1<<ADIF) | (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0);//define o começo do adc em modo continuo ativa as flags e define o prescaler para o adc para 128
-	//adc_start();
+	
 	
 	
 	sei();		//Enable global das interrupções
@@ -188,7 +165,7 @@ int main()
 {
 	init();
 	volatile char transmit_buffer[10];
-	
+	volatile char transmit_buffer1[10];
 	
 	
 	while(1)
@@ -198,6 +175,8 @@ int main()
 		flag_adc=0;
 		sprintf(transmit_buffer, "%u\r\n", LDR1an);
 		send_message(transmit_buffer);
+		sprintf(transmit_buffer1, "%u\r\n", LDR2an);
+		send_message(transmit_buffer1);
 		
 		/*if(rxUSART.receive == 1) // verifica se existe novos dados recebidos
 		{
