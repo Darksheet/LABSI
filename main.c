@@ -127,17 +127,27 @@ void val_adc(){
 	sprintf(transmit_buffer1, "LDR2: %u\r\n", LDR2an);
 	send_message(transmit_buffer1);
 }
+
+int val_sw(int sw1,int sw2){
+	sw1 = PIND7;
+	sw2 = PIND6;
+return sw1,sw2;
+	
+}
 void Controlo_motor(){
 	uint16_t Dif_lux = LDR2an-LDR1an;
+	int sw1=1, sw2=1;
+	val_sw( sw1, sw2);
 	
-	
-	while(sw1==0 %% (Dif_lux>150	){ //sw1=0 ->nao estiver precionado. sw1=1 -> maximo aberto.
+	while(sw1==0 % (Dif_lux>150	)){ //sw1=0 ->nao estiver precionado. sw1=1 -> maximo aberto.
 		PORTB |= (1<<PORTB3);
+		val_sw(sw1,sw2);
 	}
 	PORTB |= (0<<PORTB3);
 	
-	while(sw2==0 %% (Dif_lux<-150) ){//sw2=0 ->nao estiver precionado. sw2=1 -> maximo fechado.
+	while(sw2==0 % (Dif_lux<-150) ){//sw2=0 ->nao estiver precionado. sw2=1 -> maximo fechado.
 		PORTB |= (1<<PORTB4);
+		val_sw( sw1, sw2);
 	}
 	PORTB |= (0<<PORTB4);
 }
