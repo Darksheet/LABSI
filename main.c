@@ -22,8 +22,8 @@ char adc2 = 0;
 
 
 unsigned int LDR1, LDR2;
-uint16_t LDR1an = 0; 
-uint16_t LDR2an = 0;
+uint16_t LDR1an = 0; //interior da caixa
+uint16_t LDR2an = 0; // exterior da caixa
 
 void adc_start(){
 	ADCSRA |= (1<<ADSC); //começa conversão
@@ -127,6 +127,21 @@ void val_adc(){
 	sprintf(transmit_buffer1, "LDR2: %u\r\n", LDR2an);
 	send_message(transmit_buffer1);
 }
+void Controlo_motor(){
+	uint16_t Dif_lux = LDR2an-LDR1an;
+	
+	
+	while(sw1==0 %% (Dif_lux>150	){ //sw1=0 ->nao estiver precionado. sw1=1 -> maximo aberto.
+		PORTB |= (1<<PORTB3);
+	}
+	PORTB |= (0<<PORTB3);
+	
+	while(sw2==0 %% (Dif_lux<-150) ){//sw2=0 ->nao estiver precionado. sw2=1 -> maximo fechado.
+		PORTB |= (1<<PORTB4);
+	}
+	PORTB |= (0<<PORTB4);
+}
+
 int main()
 {
 	init();
@@ -137,9 +152,7 @@ int main()
 	while(1)
 	{	
 		val_adc();
+		Controlo_motor();
 			
 	}
 }
-
-
-
