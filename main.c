@@ -3,12 +3,7 @@
 #include <stdio.h>
 #define F_CPU 8000000UL
 #include <util/delay.h>
-#define BAUDRATE 9600
-#define BAUD_PRESCALLER (((F_CPU / (BAUDRATE * 16UL))) - 1)
-//#define BAUD 9600
 
-
-//#include <avr/pgmspace.h>
 
 typedef struct USARTRX{
 	char receiver_buffer;	
@@ -20,11 +15,11 @@ typedef struct USARTRX{
 volatile USARTRX_st rxUSART = {0, 0, 0, 0};
 	
 //volatile char transmit_buffer[1];	
-
-
 int i=0, pwm=0;
 
-unsigned char dado[4096];
+char adc1 = 1;
+char adc2 = 0;
+
 
 unsigned int LDR1, LDR2;
 uint16_t LDR1an = 0; 
@@ -32,51 +27,27 @@ uint16_t LDR2an = 0;
 
 void adc_start(){
 	ADCSRA |= (1<<ADSC); //começa conversão
-
 }
 
 volatile uint8_t flag_adc=0;
-static uint8_t first_conversion = 1;
 
 ISR(ADC_vect)    // Função de Interrupção do ADC
-{
-	
-	
-	
-	 //LDR1an = ADCL + (ADCH<<8);
-	// flag_adc = 1;
-	
-	
-	if(MUX1 == 0) // ADC1
-	{
-		if(first_conversion == 2)
-		{
-			LDR1an = ADCL + ADCH<<8; 
-			ADMUX = (1<<MUX1) | (0<<MUX0); // switch ADC to channel 2
-			first_conversion = 1;
-			flag_adc = 1;
-		}
-		else first_conversion++;
+{	
+	if(adc1==1){
+		adc1=0;
+		adc2=1;
+	 LDR1an = ADCL + (ADCH<<8);
+	 flag_adc = 1;
+	 ADMUX = (1<<MUX1) | (0<<MUX0);
 	}
-	else if(MUX1 == 1 ) //  ADC2
-	{
-		if(first_conversion == 2)
-		{
-			
-			LDR2an = ADCL + ADCH<<8;// ADCL>>6 | ADCH<<2;
-
-			ADMUX = (0<<MUX1) | (1<<MUX0); // switch back to channel 0
-			
-			first_conversion = 1;
-			flag_adc = 1;
-		}
-		else first_conversion++;
+	else if(adc2==1){
+		adc1=1;
+		adc2=0;
+		LDR2an = ADCL + (ADCH<<8);
+		flag_adc = 1;
+		 ADMUX = (0<<MUX1) | (1<<MUX0);
 	}
-	// LDR1an = 256;
 }
-
-// Função receber dados
-
 
 
 ISR(USART_RX_vect)
@@ -88,20 +59,7 @@ ISR(USART_RX_vect)
 		
 		rxUSART.receiver_buffer = UDR0;
 		rxUSART.receive = 1;
-		
-		
-		
-		
 		}
-		
-
-
-/*
-ISR(TIMER2_OVF_vect){
-	OCR2A = pwm; // Valor lido pelo ADC
-	
-}
-*/
 
 void init(){
 	
@@ -132,19 +90,14 @@ void init(){
 	TIMSK0 |= (1<<OCIE0A);
 	*/
 	
-	/*
-	//Timer2 Regulação de Luminosidade do LED
-	TCCR2A |= (1<<COM2A1) | (1<<WGM20) | (1<<WGM21); //Fast pwm mode, clear 0CA2 on compare match
-	TCCR2B |= (1<<CS20);  //Sem prescaler
-	TIMSK2 |= (1<<TOIE2);
-	OCR2A = 0; //Começa a 0
-	*/
-	
-	//Configuração do ADC2 sendo que o ADC1 é depois ativado com a troca de ADC's
-	ADMUX = (0<<REFS0) | (1<<REFS1) | (0<<ADLAR) | (1<<MUX1); //define o AVcc como referencia e define adc2 como pino de entrada do adc, com ADLAR ajustado a esquerda
+	//Configuração do ADC1
+	ADMUX = (0<<REFS0) | (1<<REFS1) | (0<<ADLAR) | (1<<MUX0); //define o AVcc como referencia e define adc1 como pino de entrada do adc, com ADLAR ajustado a esquerda
 	ADCSRA = (1<<ADEN) | (1<<ADIE) | (0<<ADIF) | (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0);//define o começo do adc em modo continuo ativa as flags e define o prescaler para o adc para 128
 	//adc_start();
-	
+	//Configuração do ADC2
+	//ADMUX = (0<<REFS0) | (0<<REFS1) | (0<<ADLAR) | (1<<MUX1); //define o AVcc como referencia e define adc2 como pino de entrada do adc, com ADLAR ajustado a esquerda
+	//ADCSRA = (1<<ADEN) | (1<<ADIE) | (1<<ADIF) | (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0);//define o começo do adc em modo continuo ativa as flags e define o prescaler para o adc para 128
+	//adc_start();
 	
 	
 	sei();		//Enable global das interrupções
@@ -161,39 +114,30 @@ void send_message(char *buffer)
 	}
 }
 
-int main()
-{
-	init();
+void val_adc(){
+	
 	volatile char transmit_buffer[10];
 	volatile char transmit_buffer1[10];
 	
+	adc_start();
+	while(flag_adc==0);
+	flag_adc=0;
+	sprintf(transmit_buffer, "LDR1: %u\r\n", LDR1an);
+	send_message(transmit_buffer);
+	sprintf(transmit_buffer1, "LDR2: %u\r\n", LDR2an);
+	send_message(transmit_buffer1);
+}
+int main()
+{
+	init();
+	
+	
+	
 	
 	while(1)
-	{
-		adc_start();
-		while(flag_adc==0);
-		flag_adc=0;
-		sprintf(transmit_buffer, "%u\r\n", LDR1an);
-		send_message(transmit_buffer);
-		sprintf(transmit_buffer1, "%u\r\n", LDR2an);
-		send_message(transmit_buffer1);
-		
-		/*if(rxUSART.receive == 1) // verifica se existe novos dados recebidos
-		{
-			if(rxUSART.error == 1) // verifica se existe erros
-				{
-					//procedimentos para tratar erros
-					rxUSART.error = 0;
-				}
-				else {
-					sprintf(transmit_buffer, "Tecla: %c\r\n", rxUSART.receiver_buffer);
-				}
-				rxUSART.receive = 0;
-		}*/
-		/*void rec_dad();
-		printf("%d",LDR1an);
-		//printf("%d",LDR2);*/
-		
+	{	
+		val_adc();
+			
 	}
 }
 
