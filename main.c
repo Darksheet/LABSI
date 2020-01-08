@@ -27,7 +27,7 @@ uint16_t LDR2an = 0;
 
 uint16_t diff;
 
-int sw1=0, sw2=0;
+uint8_t sw1=0, sw2=0;
 
 
 void adc_start(){
@@ -82,8 +82,9 @@ void init(){
 	DDRB = 0b01000000;		// Configura PORTB6 como output
 	PORTB = 0b01000000;
 	DDRC = 0b00011000;     //Configura PORTC3 e PORTC4 como output
+	
 	DDRD = 0b00000011;    //PORT6 e PORT7 como input / PD0 e PD1 USART output
-	PORTD=0b11000011;
+	PORTD = 0b00000011;
 		
 	/*
 	//Timer0 LED a piscar à frequência de 1Hz
@@ -133,10 +134,10 @@ void val_adc(){
 }
 
 
-void val_sw(int sw1,int sw2){
-	sw1 = PIND7;
-	sw2 = PIND6;
-	//return sw1,sw2;
+void val_sw(){
+		
+	sw1 = PIND & 0b10000000;		//PIND & 0x80
+	sw2 = PIND & 0b01000000;		//PIND & 0x40
 	
 }
 
@@ -145,27 +146,26 @@ void Controlo_motor(){
 	volatile char x[10];
 	volatile char y[10];
 	
-	val_sw( sw1, sw2);
+	val_sw();
 	
-	/*if(sw1==0 & ((int) diff>150)){					//sw1=0 ->nao estiver precionado. sw1=1 -> maximo aberto.
+	if(sw1!=0 & ((int) diff>150)){					//sw1=0 ->nao estiver precionado. sw1=1 -> maximo aberto.
 		PORTB |= (1<<PORTB3);
-		val_sw(sw1,sw2);
-		sprintf(x, "sw1: %d\r\n", diff);
+		val_sw();
+		sprintf(x, "A Abrir Persiana\r\n");
 		send_message(x);
 	}
-	PORTB |= (0<<PORTB3);
 	
-	if(sw2==0 & ((int) diff<-150)){				//sw2=0 ->nao estiver precionado. sw2=1 -> maximo fechado.
+	PORTB |= (0<<PORTB3);			//Desativar motor
+	
+	if(sw2!=0 & ((int) diff<-150)){				//sw2=0 ->nao estiver precionado. sw2=1 -> maximo fechado.
 		PORTB |= (1<<PORTB4);
-		val_sw(sw1,sw2);
-		sprintf(y, "sw2: %d\r\n", diff);
+		val_sw();
+		sprintf(y, "A Fechar Persiana\r\n");
 		send_message(y);
-	}*/
+	}
 	
-	PORTB |= (0<<PORTB4);
-	sprintf(x, "sw1: %d\r\n", sw1);
-	send_message(x);
-
+	PORTB |= (0<<PORTB4);			//Desativar motor
+	
 }
 
 
