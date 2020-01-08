@@ -27,6 +27,9 @@ uint16_t LDR2an = 0;
 
 uint16_t diff;
 
+int sw1=0, sw2=0;
+
+
 void adc_start(){
 	ADCSRA |= (1<<ADSC); //começa conversão
 }
@@ -50,7 +53,7 @@ ISR(ADC_vect)    // Função de Interrupção do ADC
 		ADMUX = (0<<MUX1) | (1<<MUX0);
 	}
 	
-	diff = LDR2an - LDR1an;
+	diff = LDR2an - LDR1an; 
 }
 
 
@@ -80,7 +83,7 @@ void init(){
 	PORTB = 0b01000000;
 	DDRC = 0b00011000;     //Configura PORTC3 e PORTC4 como output
 	DDRD = 0b00000011;    //PORT6 e PORT7 como input / PD0 e PD1 USART output
-	PORTD=0b00000011;
+	PORTD=0b11000011;
 		
 	/*
 	//Timer0 LED a piscar à frequência de 1Hz
@@ -113,7 +116,7 @@ void val_adc(){
 	volatile char transmit_buffer[10];
 	volatile char transmit_buffer1[10];
 	volatile char transmit_buffer2[10];
-	volatile char x[10];
+	//volatile char x[10];
 	
 	
 	adc_start();
@@ -125,46 +128,46 @@ void val_adc(){
 	send_message(transmit_buffer1);
 	sprintf(transmit_buffer2, "---------------\r\n");
 	send_message(transmit_buffer2);
-	sprintf(x, "%d\r\n", diff);
-	send_message(x);
+	//sprintf(x, "%d\r\n", diff);
+	//send_message(x);
 }
 
 
-int val_sw(int sw1,int sw2){
+void val_sw(int sw1,int sw2){
 	sw1 = PIND7;
 	sw2 = PIND6;
-	return sw1,sw2;
+	//return sw1,sw2;
 	
 }
 
-/*void Controlo_motor(){
-	//uint32_t Dif_lux = LDR2an-LDR1an;
-	int sw1=0, sw2=0;
+void Controlo_motor(){
+	
 	volatile char x[10];
 	volatile char y[10];
 	
-	//val_sw( sw1, sw2);
+	val_sw( sw1, sw2);
 	
-	while(sw1==0 & (LDR2an-LDR1an>150)){					//sw1=0 ->nao estiver precionado. sw1=1 -> maximo aberto.
+	/*if(sw1==0 & ((int) diff>150)){					//sw1=0 ->nao estiver precionado. sw1=1 -> maximo aberto.
 		PORTB |= (1<<PORTB3);
 		val_sw(sw1,sw2);
-		sprintf(x, "%u\r\n", LDR2an-LDR1an);
+		sprintf(x, "sw1: %d\r\n", diff);
 		send_message(x);
-		
 	}
 	PORTB |= (0<<PORTB3);
 	
-	while(sw2==0 & (LDR2an-LDR1an<-150)){				//sw2=0 ->nao estiver precionado. sw2=1 -> maximo fechado.
+	if(sw2==0 & ((int) diff<-150)){				//sw2=0 ->nao estiver precionado. sw2=1 -> maximo fechado.
 		PORTB |= (1<<PORTB4);
 		val_sw(sw1,sw2);
-		sprintf(y, "claro\r\n");
+		sprintf(y, "sw2: %d\r\n", diff);
 		send_message(y);
-	}
+	}*/
 	
 	PORTB |= (0<<PORTB4);
+	sprintf(x, "sw1: %d\r\n", sw1);
+	send_message(x);
 
 }
-*/
+
 
 int main(void)
 {
@@ -173,9 +176,9 @@ int main(void)
 	while(1)
 	{	
 		val_adc();	
-		//Controlo_motor();
+		Controlo_motor();
 		
-		_delay_ms(5000);
+		_delay_ms(2000);
 	}
 }
 
