@@ -36,6 +36,7 @@ void adc_start(){
 
 volatile uint8_t flag_adc=0;
 
+
 ISR(ADC_vect)    // Função de Interrupção do ADC
 {	
 	if(adc1==1){
@@ -56,6 +57,13 @@ ISR(ADC_vect)    // Função de Interrupção do ADC
 	diff = LDR2an - LDR1an; 
 }
 
+ISR(TIMER0_COMPB_vect) {
+	
+	if((int) diff > 100){
+		OCR0B = 100;
+	}
+	
+}
 
 ISR(USART_RX_vect)
 {
@@ -86,13 +94,13 @@ void init(){
 	DDRD = 0b00000011;    //PORT6 e PORT7 como input / PD0 e PD1 USART output
 	PORTD = 0b00000011;
 		
-	/*
-	//Timer0 LED a piscar à frequência de 1Hz
-	OCR0A=156;
-	TCCR0A |= (1<<WGM01); //CTC Mode
-	TCCR0B |= (1<<CS02) | (1<<CS00); //Prescaler 1024
+	
+	//Timer0 PWM para ligar LED de 50Hz
+	OCR0B=160;
+	TCCR0A |= (1<<WGM00) | (1<<WGM02) | (1<<COM0B1) | (1<<COM0B0); //Phase Correct PWM Mode  | Set OC0B on compare match when up-counting. Clear OC0B on compare match when down-counting
+	TCCR0B |= (1<<CS02); //Prescaler 256
 	TIMSK0 |= (1<<OCIE0A);
-	*/
+	
 	
 	//Configuração do ADC
 	ADMUX = (0<<REFS0) | (1<<REFS1) | (0<<ADLAR) | (1<<MUX0); //define o AVcc como referencia e define adc1 como pino de entrada do adc, com ADLAR ajustado a esquerda
@@ -143,28 +151,30 @@ void val_sw(){
 
 void Controlo_motor(){
 	
-	volatile char x[10];
-	volatile char y[10];
+	volatile char x[25];
+	volatile char y[25];
 	
 	val_sw();
 	
 	if(sw1!=0 & ((int) diff>150)){					//sw1=0 ->nao estiver precionado. sw1=1 -> maximo aberto.
-		PORTB |= (1<<PORTB3);
+		PORTC |= (1<<PORTC3);
 		val_sw();
 		sprintf(x, "A Abrir Persiana\r\n");
 		send_message(x);
 	}
 	
-	PORTB |= (0<<PORTB3);			//Desativar motor
+	else PORTC &= ~(1<<PORTC3);			//Desativar motor
+	
 	
 	if(sw2!=0 & ((int) diff<-150)){				//sw2=0 ->nao estiver precionado. sw2=1 -> maximo fechado.
-		PORTB |= (1<<PORTB4);
+		PORTC |= (1<<PORTC4);
 		val_sw();
 		sprintf(y, "A Fechar Persiana\r\n");
 		send_message(y);
 	}
+	else PORTC &= ~(1<<PORTC4);			//Desativar motor
 	
-	PORTB |= (0<<PORTB4);			//Desativar motor
+	
 	
 }
 
@@ -177,7 +187,8 @@ int main(void)
 	{	
 		val_adc();	
 		Controlo_motor();
-		
+		/*PORTC |= (1<<PORTC3);
+		PORTC |= (1<<PORTC4);*/
 		_delay_ms(2000);
 	}
 }
